@@ -1,6 +1,6 @@
 # logspout-kafka
 
-A [Logspout](https://github.com/gliderlabs/logspout) adapter for sending Docker container logs to Kafka topics.
+A [Logspout](https://github.com/gliderlabs/logspout) adapter for writing Docker container logs to [Kafka](https://github.com/apache/kafka) topics.
 
 ## usage
 
