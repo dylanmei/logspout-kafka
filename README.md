@@ -1,10 +1,10 @@
 # logspout-kafka
 
-A [Logspout](https://github.com/gliderlabs/logspout) adapter for writing Docker container logs to Kafka topics.
+A [Logspout](https://github.com/gliderlabs/logspout) adapter for sending Docker container logs to Kafka topics.
 
 ## usage
 
-If *container-logs* is the Kafka topic for Docker container logs, then we can direct all messages to Kafka using the **logspout** [Route API](https://github.com/gliderlabs/logspout/tree/master/routesapi):
+With *container-logs* as the Kafka topic for Docker container logs, we can direct all messages to Kafka using the **logspout** [Route API](https://github.com/gliderlabs/logspout/tree/master/routesapi):
 
 ```
 curl http://container-host:8000/routes -d '{
@@ -14,7 +14,7 @@ curl http://container-host:8000/routes -d '{
 }'
 ```
 
-If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another.
+If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following script configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another topic.
 
 ```
 cat > /logspout/routes/cat.json <<CAT
@@ -32,7 +32,7 @@ cat > /logspout/routes/dog.json <<DOG
   "id": "dog",
   "adapter": "kafka",
   "filter_name": "dog_*",
-  "filter_sources": ["stdout" ,"stderr"],
+  "filter_sources": ["stdout", "stderr"],
   "address": "kafka-broker1:9092,kafka-broker2:9092/dog-logs"
 }
 DOG
@@ -45,7 +45,7 @@ docker run --name logspout \
 
 ```
 
-You can later update these files by using the **logspout** [Route API](https://github.com/gliderlabs/logspout/tree/master/routesapi).
+The routes can be updated on a running container by using the **logspout** [Route API](https://github.com/gliderlabs/logspout/tree/master/routesapi) and specifying the route `id` "cat" or "dog".
 
 ## build
 
