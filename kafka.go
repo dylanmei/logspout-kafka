@@ -26,31 +26,32 @@ type KafkaAdapter struct {
 }
 
 func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
-	brokers, topic, err := parseRouteAddress(route.Address)
-	if err != nil {
-		return nil, err
+	brokers := readBrokers(route.Address)
+	if len(brokers) == 0 {
+		return nil, errorf("The Kafka broker host:port is missing. Did you specify it as a route address?")
 	}
 
+	topic := readTopic(route.Address, route.Options)
+	if topic == "" {
+		return nil, errorf("The Kafka topic is missing. Did you specify it as a route option?")
+	}
+
+	var err error
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
 		tmpl, err = template.New("kafka").Parse(text)
 		if err != nil {
-			return nil, err
+			return nil, errorf("Couldn't parse Kafka message template. %v", err)
 		}
 	}
 
 	if os.Getenv("DEBUG") != "" {
-		log.Printf("Starting Kafka producer for address %s\n", route.Address)
+		log.Printf("Starting Kafka producer for address: %s, topic: %s.\n", brokers, topic)
 	}
 
 	producer, err := sarama.NewAsyncProducer(brokers, newConfig())
 	if err != nil {
-		err = fmt.Errorf("Couldn't create Kafka producer. %v", err)
-		if os.Getenv("DEBUG") != "" {
-			log.Printf(err.Error())
-		}
-
-		return nil, err
+		return nil, errorf("Couldn't create Kafka producer. %v", err)
 	}
 
 	return &KafkaAdapter{
@@ -114,13 +115,31 @@ func (a *KafkaAdapter) formatMessage(message *router.Message) (*sarama.ProducerM
 	}, nil
 }
 
-func parseRouteAddress(routeAddress string) ([]string, string, error) {
-	if !strings.Contains(routeAddress, "/") {
-		return []string{}, "", fmt.Errorf("The route address %s didn't specify the Kafka topic.", routeAddress)
+func readBrokers(address string) []string {
+	if strings.Contains(address, "/") {
+		slash := strings.Index(address, "/")
+		address = address[:slash]
 	}
 
-	slash := strings.Index(routeAddress, "/")
-	topic := routeAddress[slash+1:]
-	addrs := strings.Split(routeAddress[:slash], ",")
-	return addrs, topic, nil
+	return strings.Split(address, ",")
+}
+
+func readTopic(address string, options map[string]string) string {
+	var topic string
+	if !strings.Contains(address, "/") {
+		topic = options["topic"]
+	} else {
+		slash := strings.Index(address, "/")
+		topic = address[slash+1:]
+	}
+
+	return topic
+}
+
+func errorf(format string, a ...interface{}) (err error) {
+	err = fmt.Errorf(format, a...)
+	if os.Getenv("DEBUG") != "" {
+		fmt.Println(err.Error())
+	}
+	return
 }
