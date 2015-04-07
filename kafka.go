@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -41,12 +40,17 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 
 	if os.Getenv("DEBUG") != "" {
-		log.Printf("starting Kafka producer for address %s\n", route.Address)
+		log.Printf("Starting Kafka producer for address %s\n", route.Address)
 	}
 
 	producer, err := sarama.NewAsyncProducer(brokers, newConfig())
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create Kafka producer: %v", err)
+		err = fmt.Errorf("Couldn't create Kafka producer. %v", err)
+		if os.Getenv("DEBUG") != "" {
+			log.Printf(err.Error())
+		}
+
+		return nil, err
 	}
 
 	return &KafkaAdapter{
@@ -112,7 +116,7 @@ func (a *KafkaAdapter) formatMessage(message *router.Message) (*sarama.ProducerM
 
 func parseRouteAddress(routeAddress string) ([]string, string, error) {
 	if !strings.Contains(routeAddress, "/") {
-		return []string{}, "", errors.New("the route address didn't specify the Kafka topic")
+		return []string{}, "", fmt.Errorf("The route address %s didn't specify the Kafka topic.", routeAddress)
 	}
 
 	slash := strings.Index(routeAddress, "/")
