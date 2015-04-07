@@ -40,6 +40,10 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 		}
 	}
 
+	if os.Getenv("DEBUG") != "" {
+		log.Printf("starting Kafka producer for address %s\n", route.Address)
+	}
+
 	producer, err := sarama.NewAsyncProducer(brokers, newConfig())
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create Kafka producer: %v", err)
