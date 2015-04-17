@@ -14,6 +14,8 @@ curl http://container-host:8000/routes -d '{
 }'
 ```
 
+## advanced usage
+
 If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following script configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another topic.
 
 ```
