@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -49,9 +50,24 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 		log.Printf("Starting Kafka producer for address: %s, topic: %s.\n", brokers, topic)
 	}
 
-	producer, err := sarama.NewAsyncProducer(brokers, newConfig())
+	var retries int
+	retries, err = strconv.Atoi(os.Getenv("KAFKA_CONNECT_RETRIES"))
 	if err != nil {
-		return nil, errorf("Couldn't create Kafka producer. %v", err)
+		retries = 3
+	}
+	var producer sarama.AsyncProducer
+	for i := 0; i < retries; i++ {
+		producer, err = sarama.NewAsyncProducer(brokers, newConfig())
+		if err != nil {
+			if os.Getenv("DEBUG") != "" {
+				log.Println("Couldn't create Kafka producer. Retrying...", err)
+			}
+			if i == retries-1 {
+				return nil, errorf("Couldn't create Kafka producer. %v", err)
+			}
+		} else {
+			time.Sleep(1 * time.Second)
+		}
 	}
 
 	return &KafkaAdapter{
