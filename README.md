@@ -14,7 +14,23 @@ curl http://container-host:8000/routes -d '{
 }'
 ```
 
-## advanced usage
+## message template configuration
+
+The default behavior is to route the raw message to Kafka.  This adapter provides a mechanism for customizing the template to include additional metadata via the `KAFKA_TEMPLATE` environment variable.  Golang's [text/template](http://golang.org/pkg/text/template/) package is used for templating, where the model available for templating is the [Message struct](https://github.com/gliderlabs/logspout/blob/master/router/types.go).
+
+The following example `KAFKA_TEMPLATE` configuration appends additional metadata to each log message received:
+```
+KAFKA_TEMPLATE="time=\"{{.Time}}\" container_name=\"{{.Container.Name}}\" source=\"{{.Source}}\" data=\"{{.Data}}\""
+```
+
+Example input and output
+```
+Hello World
+
+time="2015-06-23 09:54:55.241951004 +0000 UTC" container_name="/hello_container" source="stdout" data="Hello World"
+```
+
+## route configuration
 
 If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following script configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another topic.
 
