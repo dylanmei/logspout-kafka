@@ -56,7 +56,7 @@ cat > /logspout/routes/dog.json <<DOG
 DOG
 
 docker run --name logspout \
-  -p "8000:8000" \
+  -p "8000:80" \
   --volume /logspout/routes:/mnt/routes \
   --volume /var/run/docker.sock:/tmp/docker.sock \
   gettyimages/example-logspout
