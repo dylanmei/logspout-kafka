@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -44,6 +45,9 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 		if err != nil {
 			return nil, errorf("Couldn't parse Kafka message template. %v", err)
 		}
+	}
+	if !isJSON(message.Data) && os.Getenv("KAFKA_TEMPLATE_JSON") != "" {
+		message.Data = strconv.Quote(message.Data)
 	}
 
 	if os.Getenv("DEBUG") != "" {
@@ -158,4 +162,9 @@ func errorf(format string, a ...interface{}) (err error) {
 		fmt.Println(err.Error())
 	}
 	return
+}
+
+func isJSON(s string) bool {
+	var js map[string]interface{}
+	return json.Unmarshal([]byte(s), &js) == nil
 }
