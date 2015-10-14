@@ -30,6 +30,15 @@ Hello World
 time="2015-06-23 09:54:55.241951004 +0000 UTC" container_name="/hello_container" source="stdout" data="Hello World"
 ```
 
+### templating JSON logs
+
+This adapter also provides functionality to always generate valid JSON logs from your applications. You can customize this behaviour by setting the `KAFKA_TEMPLATE_JSON` environment variable and the `KAFKA_TEMPLATE` variable as so:
+```
+KAFKA_TEMPLATE_JSON=1
+KAFKA_TEMPLATE="{\"time\":\"{{.Time}}\", \"container_name\":\"{{.Container}}\", \"source\":\"{{.Source}}\", \"data\":{{.Data}}}"
+```
+Please note that there is no quoting around `{{.Data}}`. The adapter will take care of quoting the log line for you if it's not a valid JSON but won't quote if it is.
+
 ## route configuration
 
 If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following script configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another topic.
