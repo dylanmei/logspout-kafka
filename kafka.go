@@ -119,7 +119,7 @@ func (a *KafkaAdapter) formatMessage(message *router.Message) (*sarama.ProducerM
 		var w bytes.Buffer
 		// Needs a better place for this kind of processing.
 		if opt := os.Getenv("KAFKA_REPLACE_DOUBLE_QUOTES"); opt == "true" {
-			message.Data = strings.Replace(message.Data, "\"", "'")
+			message.Data = strings.Replace(message.Data, "\"", "'", -1)
 		}
 
 		if err := a.tmpl.Execute(&w, message); err != nil {
