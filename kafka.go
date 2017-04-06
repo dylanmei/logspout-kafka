@@ -40,7 +40,10 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	var err error
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
-		tmpl, err = template.New("kafka").Parse(text)
+		funcMap := template.FuncMap{
+			"getenv": tplGetEnvVar,
+		}
+		tmpl, err = template.New("kafka").Funcs(funcMap).Parse(text)
 		if err != nil {
 			return nil, errorf("Couldn't parse Kafka message template. %v", err)
 		}
@@ -150,6 +153,16 @@ func readTopic(address string, options map[string]string) string {
 	}
 
 	return topic
+}
+
+func tplGetEnvVar(env []string, key string) string {
+	key_equals := key + "="
+	for _, value := range env {
+		if strings.HasPrefix(value, key_equals) {
+			return value[len(key_equals):]
+		}
+	}
+	return ""
 }
 
 func errorf(format string, a ...interface{}) (err error) {
