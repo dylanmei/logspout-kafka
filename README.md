@@ -30,6 +30,16 @@ Hello World
 time="2015-06-23 09:54:55.241951004 +0000 UTC" container_name="/hello_container" source="stdout" data="Hello World"
 ```
 
+### environment variable support
+
+The adapter supports extracting environment variable values using the included `getenv` template function.
+
+Example:
+
+```
+KAFKA_TEMPLATE="myvar=\"{{getenv .Container.Config.Env 'MY_ENV_VAR'}}\""
+```
+
 ## route configuration
 
 If you've mounted a volume to `/mnt/routes`, then consider pre-populating your routes. The following script configures a route to send standard messages from a "cat" container to one Kafka topic, and a route to send standard/error messages from a "dog" container to another topic.
