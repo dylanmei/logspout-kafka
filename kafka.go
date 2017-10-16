@@ -45,12 +45,16 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 
 	keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
 	if err != nil {
-		return nul, error("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
+		return nil, errorf("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
 	}
 
-  tls_configuration := &tls.Config{
+  tls_configuration, err := &tls.Config{
 		Certificates:	[]tls.Certificate{keypair},
 		InsecureSkipVerify: false,
+	}
+
+	if err != nil {
+		return nil, errorf("Couldn't build TLS configuration. Bad TLS_CERT and/or TLS_PRIVKEY variables?")
 	}
 
 	var tmpl *template.Template
