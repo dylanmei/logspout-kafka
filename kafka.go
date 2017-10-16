@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"crypto/tls"
 
 	"github.com/gliderlabs/logspout/router"
 	"gopkg.in/Shopify/sarama.v1"
@@ -38,6 +39,20 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 
 	var err error
+
+	tls_cert := os.Getenv("TLS_CERT")
+	tls_privkey := os.Getenv("TLS_PRIVKEY")
+
+	keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
+	if err != nil {
+		return nul, error("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
+	}
+
+  tls_configuration := &tls.Config{
+		Certificates:	[]tls.Certificate{keypair},
+		InsecureSkipVerify: false,
+	}
+
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
 		tmpl, err = template.New("kafka").Parse(text)
@@ -57,7 +72,14 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 	var producer sarama.AsyncProducer
 	for i := 0; i < retries; i++ {
+
+		if (tls_cert != "") && (tls_privkey != "") {
+			producer.Net.TLS.Config = tls_configuration
+			producer.Net.TLS.Enable = true
+		}
+
 		producer, err = sarama.NewAsyncProducer(brokers, newConfig())
+
 		if err != nil {
 			if os.Getenv("DEBUG") != "" {
 				log.Println("Couldn't create Kafka producer. Retrying...", err)
