@@ -94,6 +94,9 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 
 	var producer sarama.AsyncProducer
 
+	if os.Getenv("DEBUG") != "" {
+		log.Println("Generating Kafka configuration.")
+	}
   config := newConfig()
 	if (cert_file != "") && (key_file != "") {
 		if os.Getenv("DEBUG") != "" {
