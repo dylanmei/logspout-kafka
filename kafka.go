@@ -71,7 +71,7 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 
   tls_configuration := &tls.Config{
 		Certificates:	[]tls.Certificate{keypair},
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: true,
 	}
 
 	var tmpl *template.Template
