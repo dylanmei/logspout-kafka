@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"time"
 	"crypto/tls"
+	"io/ioutil"
 
 	"github.com/gliderlabs/logspout/router"
 	"gopkg.in/Shopify/sarama.v1"
@@ -40,21 +41,37 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 
 	var err error
 
-	tls_cert := os.Getenv("TLS_CERT")
-	tls_privkey := os.Getenv("TLS_PRIVKEY")
+	cert_file := os.Getenv("TLS_CERT_FILE")
+	key_file := os.Getenv("TLS_PRIVKEY_FILE")
+
+	certfile, err := os.Open(cert_file)
+	if err != nil {
+		return nil, errorf("Couldn't open TLS certificate file: %s", err)
+	}
+
+	keyfile, err := os.Open(key_file)
+	if err != nil {
+		return nil, errorf("Couldn't open TLS private key file: %s", err)
+	}
+
+	tls_cert, err := ioutil.ReadAll(certfile)
+	if err != nil {
+		return nil, errorf("Couldn't read TLS certificate: %s", err)
+	}
+
+	tls_privkey, err := ioutil.ReadAll(keyfile)
+	if err != nil {
+		return nil, errorf("Couldn't read TLS private key: %s", err)
+	}
 
 	keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
 	if err != nil {
 		return nil, errorf("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
 	}
 
-  tls_configuration, err := &tls.Config{
+  tls_configuration := &tls.Config{
 		Certificates:	[]tls.Certificate{keypair},
 		InsecureSkipVerify: false,
-	}
-
-	if err != nil {
-		return nil, errorf("Couldn't build TLS configuration. Bad TLS_CERT and/or TLS_PRIVKEY variables?")
 	}
 
 	var tmpl *template.Template
