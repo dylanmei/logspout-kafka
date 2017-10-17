@@ -98,11 +98,10 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 		log.Println("Generating Kafka configuration.")
 	}
   config := newConfig()
-	if (cert_file != "") && (key_file != "") {
-		log.Println("Enabling Kafka TLS support.")
-		config.Net.TLS.Config = tls_configuration
-		config.Net.TLS.Enable = true
-	}
+	log.Println("Enabling Kafka TLS support.")
+	config.Net.TLS.Config = tls_configuration
+	config.Net.TLS.Enable = true
+
 
 	for i := 0; i < retries; i++ {
 
