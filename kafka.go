@@ -71,7 +71,7 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 
   tls_configuration := &tls.Config{
 		Certificates:	[]tls.Certificate{keypair},
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 	}
 
 	var tmpl *template.Template
@@ -91,15 +91,21 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	if err != nil {
 		retries = 3
 	}
+
 	var producer sarama.AsyncProducer
+
+  config := newConfig()
+	if (cert_file != "") && (key_file != "") {
+		if os.Getenv("DEBUG") != "" {
+			log.Println("Enabling TLS support.")
+		}
+		config.Net.TLS.Config = tls_configuration
+		config.Net.TLS.Enable = true
+	}
+
 	for i := 0; i < retries; i++ {
 
-		if (tls_cert != "") && (tls_privkey != "") {
-			producer.Net.TLS.Config = tls_configuration
-			producer.Net.TLS.Enable = true
-		}
-
-		producer, err = sarama.NewAsyncProducer(brokers, newConfig())
+		producer, err = sarama.NewAsyncProducer(brokers, config)
 
 		if err != nil {
 			if os.Getenv("DEBUG") != "" {
