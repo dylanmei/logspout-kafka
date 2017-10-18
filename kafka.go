@@ -44,34 +44,28 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	cert_file := os.Getenv("TLS_CERT_FILE")
 	key_file := os.Getenv("TLS_PRIVKEY_FILE")
 
-	certfile, err := os.Open(cert_file)
-	if err != nil {
-		return nil, errorf("Couldn't open TLS certificate file: %s", err)
+  if cert_file != "" {
+		certfile, err := os.Open(cert_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS certificate file: %s", err)
+		}
+
+		tls_cert, err := ioutil.ReadAll(certfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS certificate: %s", err)
+		}
 	}
 
-	keyfile, err := os.Open(key_file)
-	if err != nil {
-		return nil, errorf("Couldn't open TLS private key file: %s", err)
-	}
+	if key_file != "" {
+		keyfile, err := os.Open(key_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS private key file: %s", err)
+		}
 
-	tls_cert, err := ioutil.ReadAll(certfile)
-	if err != nil {
-		return nil, errorf("Couldn't read TLS certificate: %s", err)
-	}
-
-	tls_privkey, err := ioutil.ReadAll(keyfile)
-	if err != nil {
-		return nil, errorf("Couldn't read TLS private key: %s", err)
-	}
-
-	keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
-	if err != nil {
-		return nil, errorf("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
-	}
-
-  tls_configuration := &tls.Config{
-		Certificates:	[]tls.Certificate{keypair},
-		InsecureSkipVerify: false,
+		tls_privkey, err := ioutil.ReadAll(keyfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS private key: %s", err)
+		}
 	}
 
 	var tmpl *template.Template
@@ -103,6 +97,17 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 		if os.Getenv("DEBUG") != "" {
 			log.Println("Enabling Kafka TLS support.")
 		}
+
+		keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
+		if err != nil {
+			return nil, errorf("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
+		}
+
+		tls_configuration := &tls.Config{
+			Certificates:	[]tls.Certificate{keypair},
+			InsecureSkipVerify: false,
+		}
+
 		config.Net.TLS.Config = tls_configuration
 		config.Net.TLS.Enable = true
 	}
