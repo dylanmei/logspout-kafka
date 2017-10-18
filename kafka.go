@@ -44,30 +44,6 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	cert_file := os.Getenv("TLS_CERT_FILE")
 	key_file := os.Getenv("TLS_PRIVKEY_FILE")
 
-  if cert_file != "" {
-		certfile, err := os.Open(cert_file)
-		if err != nil {
-			return nil, errorf("Couldn't open TLS certificate file: %s", err)
-		}
-
-		tls_cert, err := ioutil.ReadAll(certfile)
-		if err != nil {
-			return nil, errorf("Couldn't read TLS certificate: %s", err)
-		}
-	}
-
-	if key_file != "" {
-		keyfile, err := os.Open(key_file)
-		if err != nil {
-			return nil, errorf("Couldn't open TLS private key file: %s", err)
-		}
-
-		tls_privkey, err := ioutil.ReadAll(keyfile)
-		if err != nil {
-			return nil, errorf("Couldn't read TLS private key: %s", err)
-		}
-	}
-
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
 		tmpl, err = template.New("kafka").Parse(text)
@@ -96,6 +72,26 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	if (cert_file != "") && (key_file != "") {
 		if os.Getenv("DEBUG") != "" {
 			log.Println("Enabling Kafka TLS support.")
+		}
+
+		certfile, err := os.Open(cert_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS certificate file: %s", err)
+		}
+
+		keyfile, err := os.Open(key_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS private key file: %s", err)
+		}
+
+		tls_cert, err := ioutil.ReadAll(certfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS certificate: %s", err)
+		}
+
+		tls_privkey, err := ioutil.ReadAll(keyfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS private key: %s", err)
 		}
 
 		keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
