@@ -65,6 +65,20 @@ docker run --name logspout \
 
 The routes can be updated on a running container by using the **logspout** [Route API](https://github.com/gliderlabs/logspout/tree/master/routesapi) and specifying the route `id` "cat" or "dog".
 
+## TLS Authentication Support
+Some brokers require TLS certificate-based authentication.  This adapter supports this if you provide both a certificate and a private key file in the container.  
+
+To use this, mount certificate and private key files (in PEM format) into the container, then set the *TLS_CERT_FILE* and *TLS_PRIVKEY_FILE* environment variables to point to their location on the disk **inside the container**, like so:
+
+```
+docker run --name logspout \
+-p "8000:8000" \
+--volume /logspout/routes:/mnt/routes \
+--volume /var/run/docker.sock:/tmp/docker.sock \
+--volume /logspout/tls:/mnt/tls \
+-e "TLS_CERTFILE=/mnt/tls/cert.pem" \
+-e "TLS_PRIVKEY_FILE=/mnt/tls/priv.key"
+```
 ## build
 
 **logspout-kafka** is a custom **logspout** module. To use it, create an empty `Dockerfile` based on `gliderlabs/logspout` and include this **logspout-kafka** module in a new `modules.go` file.
