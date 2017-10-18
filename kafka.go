@@ -9,6 +9,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"crypto/tls"
+	"io/ioutil"
 
 	"github.com/gliderlabs/logspout/router"
 	"gopkg.in/Shopify/sarama.v1"
@@ -38,6 +40,10 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 
 	var err error
+
+	cert_file := os.Getenv("TLS_CERT_FILE")
+	key_file := os.Getenv("TLS_PRIVKEY_FILE")
+
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
 		tmpl, err = template.New("kafka").Parse(text)
@@ -55,9 +61,57 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	if err != nil {
 		retries = 3
 	}
+
 	var producer sarama.AsyncProducer
+
+	if os.Getenv("DEBUG") != "" {
+		log.Println("Generating Kafka configuration.")
+	}
+  config := newConfig()
+
+	if (cert_file != "") && (key_file != "") {
+		if os.Getenv("DEBUG") != "" {
+			log.Println("Enabling Kafka TLS support.")
+		}
+
+		certfile, err := os.Open(cert_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS certificate file: %s", err)
+		}
+
+		keyfile, err := os.Open(key_file)
+		if err != nil {
+			return nil, errorf("Couldn't open TLS private key file: %s", err)
+		}
+
+		tls_cert, err := ioutil.ReadAll(certfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS certificate: %s", err)
+		}
+
+		tls_privkey, err := ioutil.ReadAll(keyfile)
+		if err != nil {
+			return nil, errorf("Couldn't read TLS private key: %s", err)
+		}
+
+		keypair, err := tls.X509KeyPair([]byte(tls_cert), []byte(tls_privkey))
+		if err != nil {
+			return nil, errorf("Couldn't establish TLS authentication keypair. Check TLS_CERT and TLS_PRIVKEY environment vars.")
+		}
+
+		tls_configuration := &tls.Config{
+			Certificates:	[]tls.Certificate{keypair},
+			InsecureSkipVerify: false,
+		}
+
+		config.Net.TLS.Config = tls_configuration
+		config.Net.TLS.Enable = true
+	}
+
 	for i := 0; i < retries; i++ {
-		producer, err = sarama.NewAsyncProducer(brokers, newConfig())
+
+		producer, err = sarama.NewAsyncProducer(brokers, config)
+
 		if err != nil {
 			if os.Getenv("DEBUG") != "" {
 				log.Println("Couldn't create Kafka producer. Retrying...", err)
