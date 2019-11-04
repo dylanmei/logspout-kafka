@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -18,6 +19,18 @@ func init() {
 	router.AdapterFactories.Register(NewKafkaAdapter, "kafka")
 }
 
+var funcs = template.FuncMap{
+	"toJSON": func(value interface{}) string {
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			log.Println("error marshalling to JSON: ", err)
+			return "null"
+		}
+		return string(bytes)
+	},
+}
+
+// KafkaAdapter for sending messages from logspout
 type KafkaAdapter struct {
 	route    *router.Route
 	brokers  []string
@@ -40,7 +53,7 @@ func NewKafkaAdapter(route *router.Route) (router.LogAdapter, error) {
 	var err error
 	var tmpl *template.Template
 	if text := os.Getenv("KAFKA_TEMPLATE"); text != "" {
-		tmpl, err = template.New("kafka").Parse(text)
+		tmpl, err = template.New("kafka").Funcs(funcs).Parse(text)
 		if err != nil {
 			return nil, errorf("Couldn't parse Kafka message template. %v", err)
 		}
